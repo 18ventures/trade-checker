@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Signal Checker">
+<meta name="theme-color" content="#080808">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23080808'/><text y='55' x='50' text-anchor='middle' font-size='52' font-family='monospace' fill='%2300ff88'>▲▼</text></svg>">
+<title>Signal Checker</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080808;
+    --surface: #111111;
+    --border: #222222;
+    --text: #c8c8c8;
+    --muted: #555555;
+    --long-color: #00ff88;
+    --short-color: #ff3366;
+    --warn: #ffcc00;
+    --orange: #ff6b35;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 40% at 50% -10%, rgba(255,255,255,0.03) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 100% 60%, rgba(255,255,255,0.02) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: env(safe-area-inset-top, 40px) 20px calc(env(safe-area-inset-bottom, 0px) + 80px);
+    padding-top: max(40px, env(safe-area-inset-top));
+  }
+
+  /* HEADER */
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: #555;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    line-height: 1;
+    background: linear-gradient(135deg, #ffffff 0%, #cccccc 60%, #888888 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .divider {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #555, transparent);
+    margin: 16px auto;
+  }
+
+  /* DIRECTION PICKER */
+  .direction-screen {
+    animation: fadeUp 0.5s ease 0.2s both;
+  }
+
+  .direction-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .direction-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .timeframe-screen { display: none; }
+  .timeframe-screen.show { display: block; animation: fadeUp 0.5s ease both; }
+
+  .tf-btns {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .tf-btn {
+    padding: 28px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.25s;
+    text-align: center;
+    font-family: 'Rajdhani', sans-serif;
+  }
+
+  .tf-btn:hover {
+    background: #181818;
+    border-color: #888;
+    box-shadow: 0 0 20px rgba(255,255,255,0.06);
+  }
+
+  .tf-value {
+    font-size: 40px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+
+  .tf-unit {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .dir-btn {
+    padding: 32px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.25s;
+    text-align: center;
+    font-family: 'Rajdhani', sans-serif;
+  }
+
+  .dir-btn:hover { background: #181818; }
+
+  .dir-btn.long-btn:hover { border-color: var(--long-color); box-shadow: 0 0 24px rgba(0,255,136,0.12); }
+  .dir-btn.short-btn:hover { border-color: var(--short-color); box-shadow: 0 0 24px rgba(255,51,102,0.12); }
+
+  .dir-arrow {
+    font-size: 36px;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .long-btn .dir-arrow { color: var(--long-color); }
+  .short-btn .dir-arrow { color: var(--short-color); }
+
+  .dir-label {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  .long-btn .dir-label { color: var(--long-color); }
+  .short-btn .dir-label { color: var(--short-color); }
+
+  .dir-sub {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    margin-top: 6px;
+  }
+
+  /* QUESTIONS */
+  .questions-screen { display: none; }
+  .questions-screen.show { display: block; animation: fadeUp 0.5s ease both; }
+
+  .direction-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border-radius: 3px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    cursor: pointer;
+    border: 1px solid;
+    transition: opacity 0.2s;
+  }
+
+  .direction-pill:hover { opacity: 0.7; }
+  .direction-pill.long { color: var(--long-color); border-color: rgba(0,255,136,0.3); background: rgba(0,255,136,0.06); }
+  .direction-pill.short { color: var(--short-color); border-color: rgba(255,51,102,0.3); background: rgba(255,51,102,0.06); }
+
+  .questions-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .question-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .question-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--muted);
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+
+  .question-card.answered::before { background: #00ff88; box-shadow: 0 0 8px rgba(0,255,136,0.4); }
+  .question-card.answered { border-color: rgba(0,255,136,0.12); }
+
+  .q-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .q-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 16px;
+    letter-spacing: 0.5px;
+  }
+
+  .options { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .opt-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 8px 16px;
+    color: var(--muted);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .opt-btn:hover { border-color: #888; color: #fff; background: rgba(255,255,255,0.05); }
+
+  .opt-btn.selected.best { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.08); }
+  .opt-btn.selected.mid  { border-color: #ffcc00; color: #ffcc00; background: rgba(255,204,0,0.08); }
+  .opt-btn.selected.worst{ border-color: #ff3366; color: #ff3366; background: rgba(255,51,102,0.08); }
+
+  .analyse-btn {
+    width: 100%;
+    margin-top: 32px;
+    padding: 18px;
+    background: transparent;
+    border: 1px solid #555;
+    border-radius: 4px;
+    color: #ccc;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s;
+    overflow: hidden;
+  }
+
+  .analyse-btn:hover:not(:disabled) { background: rgba(255,255,255,0.05); border-color: #999; color: #fff; }
+  .analyse-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* RESULT */
+  .result { display: none; margin-top: 40px; }
+  .result.show { display: block; animation: fadeUp 0.7s ease both; }
+
+  .result-header {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .score-display {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 36px 32px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .score-display::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--result-color, #888), transparent);
+  }
+
+  .win-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .win-pct {
+    font-size: 80px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--result-color, #ccc);
+    text-shadow: 0 0 40px var(--result-color, #ccc);
+    margin-bottom: 4px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .win-pct span { font-size: 36px; }
+
+  .verdict {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--result-color, #ccc);
+    margin-top: 12px;
+  }
+
+  .approval-badge {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 6px 20px;
+    border-radius: 3px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 4px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .approval-badge.marginal {
+    border: 1px solid #ffcc00;
+    color: #ffcc00;
+    background: rgba(255,204,0,0.08);
+    box-shadow: 0 0 16px rgba(255,204,0,0.2);
+  }
+
+  .approval-badge.approved { border: 1px solid #00ff88; color: #00ff88; background: rgba(0,255,136,0.08); box-shadow: 0 0 16px rgba(0,255,136,0.2); }
+  .approval-badge.rejected { border: 1px solid #ff3366; color: #ff3366; background: rgba(255,51,102,0.08); box-shadow: 0 0 16px rgba(255,51,102,0.2); }
+
+  .threshold-marker {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: #444;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 10px;
+  }
+
+  .meter-bar { width: 100%; height: 4px; background: var(--border); border-radius: 2px; margin: 20px 0 0; overflow: hidden; }
+  .meter-fill { height: 100%; border-radius: 2px; background: var(--result-color, #888); box-shadow: 0 0 10px var(--result-color, #888); transition: width 1.2s cubic-bezier(0.4,0,0.2,1); width: 0%; }
+
+  .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+
+  .detail-card { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 20px; text-align: center; }
+  .detail-label { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 8px; }
+  .detail-value { font-size: 28px; font-weight: 700; color: #fff; letter-spacing: 1px; }
+  .detail-sub { font-size: 12px; color: var(--muted); margin-top: 4px; letter-spacing: 1px; }
+
+  .signal-breakdown { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 24px; margin-top: 12px; }
+  .breakdown-title { font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 3px; color: #ffffff; text-transform: uppercase; margin-bottom: 16px; }
+
+  .signal-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .signal-row:last-child { border-bottom: none; }
+  .signal-name { font-size: 13px; font-weight: 600; letter-spacing: 1px; color: var(--text); text-transform: uppercase; }
+  .signal-answer { font-family: 'Share Tech Mono', monospace; font-size: 12px; }
+  .signal-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; display: inline-block; }
+
+  .s-best { color: #00ff88; } .s-mid { color: #ffcc00; } .s-worst { color: #ff3366; }
+  .dot-best { background: #00ff88; box-shadow: 0 0 6px #00ff88; }
+  .dot-mid  { background: #ffcc00; box-shadow: 0 0 6px #ffcc00; }
+  .dot-worst{ background: #ff3366; box-shadow: 0 0 6px #ff3366; }
+
+  .execute-btn {
+    width: 100%;
+    margin-top: 16px;
+    padding: 16px;
+    background: transparent;
+    border: 1px solid #00ff88;
+    border-radius: 4px;
+    color: #00ff88;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .execute-btn:hover {
+    background: rgba(0,255,136,0.08);
+    box-shadow: 0 0 20px rgba(0,255,136,0.2);
+  }
+
+  .reset-btn { width: 100%; margin-top: 20px; padding: 14px; background: transparent; border: 1px solid var(--border); border-radius: 4px; color: var(--muted); font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 4px; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+  .reset-btn:hover { border-color: var(--text); color: var(--text); }
+
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeUp   { from { opacity: 0; transform: translateY(20px);  } to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 28px; }
+    .win-pct { font-size: 60px; }
+    .details-grid { grid-template-columns: 1fr; }
+    .direction-btns { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="container">
+
+  <header>
+    <div class="tag">// Signal Analyser v2.0</div>
+    <h1>Setup<br>Checker</h1>
+    <div class="divider"></div>
+    <div class="subtitle">8 Signals · Equal Weight · BTC Futures</div>
+  </header>
+
+  <!-- STEP 1: DIRECTION -->
+  <div class="direction-screen" id="directionScreen">
+    <div class="direction-label">// Select trade direction</div>
+    <div class="direction-btns">
+      <button class="dir-btn long-btn" onclick="setDirection('long')">
+        <span class="dir-arrow">▲</span>
+        <div class="dir-label">Long</div>
+        <div class="dir-sub">Discount signals</div>
+      </button>
+      <button class="dir-btn short-btn" onclick="setDirection('short')">
+        <span class="dir-arrow">▼</span>
+        <div class="dir-label">Short</div>
+        <div class="dir-sub">Premium signals</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 1.5: TIMEFRAME -->
+  <div class="timeframe-screen" id="timeframeScreen">
+    <div class="direction-label">// Select your timeframe</div>
+    <div class="tf-btns">
+      <button class="tf-btn" onclick="setTimeframe('15min')">
+        <div class="tf-value">15</div>
+        <div class="tf-unit">MIN</div>
+        <div class="dir-sub">HTF → 2H</div>
+      </button>
+      <button class="tf-btn" onclick="setTimeframe('30min')">
+        <div class="tf-value">30</div>
+        <div class="tf-unit">MIN</div>
+        <div class="dir-sub">HTF → 4H</div>
+      </button>
+      <button class="tf-btn" onclick="setTimeframe('1hr')">
+        <div class="tf-value">1</div>
+        <div class="tf-unit">HOUR</div>
+        <div class="dir-sub">HTF → 8H</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 2: QUESTIONS -->
+  <div class="questions-screen" id="questionsScreen">
+
+    <div id="dirPill"></div>
+
+    <div class="questions-grid" id="questionsGrid"></div>
+
+    <button class="analyse-btn" id="analyseBtn" onclick="analyse()" disabled>
+      ▶ &nbsp; Analyse Setup
+    </button>
+  </div>
+
+  <!-- STEP 3: RESULT -->
+  <div class="result" id="result">
+    <div class="result-header">// Analysis Complete</div>
+    <div class="score-display" id="scoreDisplay">
+      <div class="win-label">Estimated Win Likelihood</div>
+      <div class="win-pct" id="winPct">—<span>%</span></div>
+      <div class="verdict" id="verdict">—</div>
+      <div class="approval-badge" id="approvalBadge">—</div>
+      <div class="meter-bar"><div class="meter-fill" id="meterFill"></div></div>
+      <div class="threshold-marker">70% approval threshold</div>
+      <button class="execute-btn" id="executeBtn" onclick="sendToTelegram()" style="display:none">
+        📲 &nbsp; Send to Telegram
+      </button>
+    </div>
+    <div class="details-grid">
+      <div class="detail-card">
+        <div class="detail-label">Score</div>
+        <div class="detail-value" id="rawScore">—</div>
+        <div class="detail-sub" id="maxScoreLabel">out of —</div>
+      </div>
+      <div class="detail-card">
+        <div class="detail-label">Time to Result</div>
+        <div class="detail-value" id="timeResult">—</div>
+        <div class="detail-sub" id="timeSub">estimated mins</div>
+      </div>
+    </div>
+    <div class="signal-breakdown">
+      <div class="breakdown-title" id="breakdownTitle">// Signal Breakdown</div>
+      <div id="breakdownRows"></div>
+    </div>
+    <div id="timingWarning" style="display:none;margin-top:12px;padding:16px 20px;border:1px solid #ffcc00;border-radius:4px;background:rgba(255,204,0,0.06);font-family:'Share Tech Mono',monospace;font-size:13px;color:#ffcc00;letter-spacing:2px;text-align:center;"></div>
+    <button id="timerBtn" onclick="startTimer()" style="display:none;width:100%;margin-top:10px;padding:14px;background:transparent;border:1px solid #ffcc00;border-radius:4px;color:#ffcc00;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all 0.2s;">
+      ⏱ &nbsp; <span id="timerBtnLabel">Set 30 Min Timer</span>
+    </button>
+    <button class="reset-btn" onclick="reset()">↺ &nbsp; Reset & Re-analyse</button>
+  </div>
+
+</div>
+<script>
+  const SIGNALS = {
+    long: [
+      {
+        label: 'Discount Bands',
+        question: 'Where are you relative to the Discount Bands?',
+        options: [
+          { text: 'In the Bands',    score: 3,   tier: 'best' },
+          { text: 'Below the Bands', score: 1.5, tier: 'mid'  },
+          { text: 'Above the Bands', score: 0,   tier: 'worst' }
+        ]
+      },
+      {
+        label: 'Green Orions',
+        question: 'Do you have 2 or more green Orions in any of the last 3 candles?',
+        options: [
+          { text: 'Yes', score: 3, tier: 'best'  },
+          { text: 'No',  score: 0, tier: 'worst' }
+        ]
+      },
+      {
+        label: 'Composite Colour',
+        question: 'What colour is the Composite?',
+        options: [
+          { text: 'Cyan',    score: 3, tier: 'best'  },
+          { text: 'Green',   score: 2, tier: 'mid'   },
+          { text: 'Neither', score: 0, tier: 'worst' }
+        ]
+      },
+      {
+        label: 'Bullish Colour Pattern',
+        question: 'Which bullish colour pattern do you have?',
+        options: [
+          { text: 'Green → Pink',       score: 3,   tier: 'best'  },
+          { text: 'Cyan → Pink',        score: 2,   tier: 'mid'   },
+          { text: 'Just Pink',          score: 1,   tier: 'mid'   },
+          { text: 'Green → Pink → Blue',score: 0.5, tier: 'worst' },
+          { text: 'Neither',            score: 0,   tier: 'worst' }
+        ]
+      },
+      {
+        label: 'Percentile Rank',
+        question: 'What is your Percentile Rank?',
+        options: [
+          { text: 'Below 15', score: 3,   tier: 'best'  },
+          { text: 'Below 25', score: 1.5, tier: 'mid'   },
+          { text: 'Above 25', score: 0,   tier: 'worst' }
+        ]
+      },
+      {
+        label: 'VAL Swept & Reclaimed',
+        question: 'Has the VAL been swept and reclaimed?',
+        options: [
+          { text: 'Yes', score: 3, tier: 'best'  },
+          { text: 'No',  score: 0, tier: 'worst' }
+        ]
+      },
+      {
+        label: 'Composite Swept & Reclaimed',
+        question: 'Has the Composite swept Discount and reclaimed?',
+        options: [
+          { text: 'Yes', score: 3, tier: 'best'  },
+          { text: 'No',  score: 0, tier: 'worst' }
+        ]
+      },
+      {
+        label: '25 EMA Position',
+        question: 'Are you above or below the 25 EMA?',
+        options: [
+          { text: 'Price Below 25 EMA', score: 3, tier: 'best'  },
+          { text: 'Price Above 25 EMA', score: 0, tier: 'worst' }
+        ]
+      },
+      {
+        label: 'HTF Trend',
+        question: 'Is the HTF 2H trend bullish or bearish?',
+        options: [
+          { text: 'Bullish', score: 3, tier: 'best'  },
+          { text: 'Bearish', score: 0, tier: 'worst' }
+        ]
+      },
+      {
+        label: 'HTF Candle Colour',
+        question: 'What is the HTF candle colour?',
+        options: [
+          { text: 'Pink',   score: 3,   tier: 'best'  },
+          { text: 'Blue',   score: 2.5, tier: 'best'  },
+          { text: 'Cyan',   score: 2,   tier: 'mid'   },
+          { text: 'Green',  score: 1.5, tier: 'mid'   },
+          { text: 'Red',    score: 1,   tier: 'worst' },
+          { text: 'Orange', score: 0,   tier: 'worst' }
+        ]
+      },
+      {
+        label: 'HTF Orion Colour',
+        question: 'What colour is the HTF Orion?',
+        options: [
+          { text: 'Green',   score: 3,   tier: 'best'  },
+          { text: 'Neither', score: 1.5, tier: 'mid'   },
+          { text: 'Yellow',  score: 0,   tier: 'worst' }
+        ]
+      },
+      {
+        label: 'Bullish Triggers',
+        question: 'Do you have any bullish triggers?',
+        options: [
+          { text: 'Long',     score: 3,   tier: 'best'  },
+          { text: 'Strength', score: 2.5, tier: 'best'  },
+          { text: 'Buy',      score: 1.5, tier: 'mid'   },
+          { text: 'None',     score: 0,   tier: 'worst' }
+        ]
+      },
+      {
+        label: 'LTF MXS Colour',
+        question: 'Is LTF MXS Blue or Pink?',
+        options: [
+          { text: 'Pink', score: 3, tier: 'best'  },
+          { text: 'Blue', score: 0, tier: 'worst' }
+        ]
+      }
+    ],
+    short: [
+      {
+        label: 'Premium Bands',
+        question: 'Where are you relative to the Premium Bands?',
+        options: [
+          { text: 'In the Bands',    score: 3,   tier: 'best'  },
+          { text: 'Above the Bands', score: 1.5, tier: 'mid'   },
+          { text: 'Below the Bands', score: 0,   tier: 'worst' }
+        ]
+      },
+      {
+        label: 'Yellow Orions',
+        question: 'Do you have 2 or more yellow Orions in any of the last 3 candles?',
+        options: [
+          { text: 'Yes', score: 3, tier: 'best'  },
+          { text: 'No',  score: 0, tier: 'worst' }
+        ]
+      },
+      {
+        label: 'Composite Colour',
+        question: 'What colour is the Composite?',
+        options: [
+          { text: 'Red',     score: 2, tier: 'mid'   },
+          { text: 'Orange',  score: 3, tier: 'best'  },
+          { text: 'Neither', score: 0, tier: 'worst' }
+        ]
+      },
+      {
+        label: 'Bearish Colour Pattern',
+        question: 'Which bearish colour pattern do you have? (Last 3 Candles)',
+        options: [
+          { text: 'Red → Orange → Blue', score: 3,    tier: 'best'  },
+          { text: 'Red → Blue → Pink',   score: 2.5,  tier: 'best'  },
+          { text: 'Red → Blue',          score: 2,    tier: 'mid'   },
+          { text: 'Just Blue',           score: 1,    tier: 'mid'   },
+          { text: 'Orange → Blue',       score: 0.5,  tier: 'worst' },
+          { text: 'Neither',             score: 0,    tier: 'worst' }
+        ]
+      },
+      {
+        label: 'Percentile Rank',
+        question: 'What is your Percentile Rank?',
+        options: [
+          { text: 'Rejected 80', score: 3,   tier: 'best'  },
+          { text: 'Above 85',    score: 2.5, tier: 'best'  },
+          { text: 'Rejected 60', score: 1.5, tier: 'mid'   },
+          { text: 'Below 60',    score: -1,  tier: 'worst' }
+        ]
+      },
+      {
+        label: 'VAH Swept & Rejected',
+        question: 'Has the VAH been swept and rejected?',
+        options: [
+          { text: 'Yes', score: 3, tier: 'best'  },
+          { text: 'No',  score: 0, tier: 'worst' }
+        ]
+      },
+      {
+        label: 'Composite Swept & Rejected',
+        question: 'Has the Composite swept Premium and rejected?',
+        options: [
+          { text: 'Yes', score: 3, tier: 'best'  },
+          { text: 'No',  score: 0, tier: 'worst' }
+        ]
+      },
+      {
+        label: '25 EMA Position',
+        question: 'Are you above or below the 25 EMA?',
+        options: [
+          { text: 'Price Above 25 EMA', score: 3, tier: 'best'  },
+          { text: 'Price Below 25 EMA', score: 0, tier: 'worst' }
+        ]
+      },
+      {
+        label: 'Triggers',
+        question: 'Do you have any bearish triggers?',
+        dynamic: 'triggers',
+        options: [
+          { text: 'Short',    score: 3,   tier: 'best'  },
+          { text: 'Fork',     score: 2,   tier: 'mid'   },
+          { text: 'Bearish',  score: 1,   tier: 'mid'   },
+          { text: 'No',       score: 0,   tier: 'worst' }
+        ],
+        optionsWeakOnly: [
+          { text: 'Weakness', score: 1.5, tier: 'mid'   },
+          { text: 'No',       score: 0,   tier: 'worst' }
+        ]
+      },
+      {
+        label: 'LTF MXS Colour',
+        question: 'Is LTF MXS Blue or Pink?',
+        options: [
+          { text: 'Blue', score: 3, tier: 'best'  },
+          { text: 'Pink', score: 0, tier: 'worst' }
+        ]
+      },
+      {
+        label: 'HTF Trend',
+        question: 'Is the HTF 2H trend bullish or bearish?',
+        options: [
+          { text: 'Bearish', score: 3, tier: 'best'  },
+          { text: 'Bullish', score: 0, tier: 'worst' }
+        ]
+      },
+      {
+        label: 'HTF Candle Colour',
+        question: 'What is the HTF candle colour?',
+        options: [
+          { text: 'Blue',   score: 3,   tier: 'best'  },
+          { text: 'Pink',   score: 2.5, tier: 'best'  },
+          { text: 'Orange', score: 2,   tier: 'mid'   },
+          { text: 'Red',    score: 1.5, tier: 'mid'   },
+          { text: 'Green',  score: 1,   tier: 'worst' },
+          { text: 'Cyan',   score: 0,   tier: 'worst' }
+        ]
+      },
+      {
+        label: 'HTF Orion Colour',
+        question: 'What colour is the HTF Orion?',
+        options: [
+          { text: 'Yellow',  score: 3,   tier: 'best'  },
+          { text: 'Neither', score: 1.5, tier: 'mid'   },
+          { text: 'Green',   score: 0,   tier: 'worst' }
+        ]
+      }
+    ]
+  };
+
+  let direction = null;
+  let selectedTF = null;
+  const answers = {};
+
+  const TF_MAP = {
+    '15min': { label: '15 Min', htf: '2H' },
+    '30min': { label: '30 Min', htf: '4H' },
+    '1hr':   { label: '1 Hour', htf: '8H' }
+  };
+
+  function setDirection(dir) {
+    direction = dir;
+    answers_clear();
+    document.getElementById('directionScreen').style.display = 'none';
+    document.getElementById('result').classList.remove('show');
+    document.getElementById('timeframeScreen').classList.add('show');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function setTimeframe(tf) {
+    selectedTF = tf;
+    document.getElementById('timeframeScreen').classList.remove('show');
+
+    // Pill
+    const pill = document.getElementById('dirPill');
+    pill.innerHTML = `<span class="direction-pill ${direction}" onclick="reset()">
+      ${direction === 'long' ? '▲' : '▼'} &nbsp; ${direction.toUpperCase()} &nbsp; <span style="opacity:0.5;font-size:10px">✕ change</span>
+    </span>`;
+
+    // Build questions
+    const grid = document.getElementById('questionsGrid');
+    grid.innerHTML = '';
+    const htfLabel = TF_MAP[selectedTF].htf;
+    const signals = SIGNALS[direction].map(s => {
+      if (s.label === 'HTF Trend Aligned') {
+        return Object.assign({}, s, { question: 'Is the ' + htfLabel + ' trend the same direction as your trade idea?' });
+      }
+      return s;
+    });
+    // Store signals on window for dynamic access
+    window._currentSignals = signals;
+
+    signals.forEach((sig, i) => {
+      const total = signals.length;
+      const card = document.createElement('div');
+      card.className = 'question-card';
+      card.id = 'card' + i;
+      // For trigger cards, start with full options (will be swapped dynamically)
+      const opts = sig.options;
+      card.innerHTML = `
+        <div class="q-label">Signal ${String(i+1).padStart(2,'0')} / ${String(total).padStart(2,'0')}</div>
+        <div class="q-text">${sig.question}</div>
+        <div class="options" id="opts${i}">
+          ${opts.map(opt => `
+            <button class="opt-btn" data-q="${i}" data-score="${opt.score}" data-tier="${opt.tier}" data-label="${opt.text}" onclick="selectOpt(this)">
+              ${opt.text}
+            </button>`).join('')}
+        </div>`;
+      grid.appendChild(card);
+    });
+
+    document.getElementById('analyseBtn').disabled = true;
+    document.getElementById('questionsScreen').classList.add('show');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function answers_clear() {
+    Object.keys(answers).forEach(k => delete answers[k]);
+  }
+
+  function selectOpt(btn) {
+    const q = parseInt(btn.dataset.q);
+    const card = document.getElementById('card' + q);
+    card.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    answers[q] = { score: parseFloat(btn.dataset.score), tier: btn.dataset.tier, label: btn.dataset.label };
+    card.classList.add('answered');
+    const lbl = card.querySelector('.q-label');
+    if (lbl && !lbl.querySelector('.check')) {
+      const chk = document.createElement('span');
+      chk.className = 'check';
+      chk.style.cssText = 'color:#00ff88;margin-left:8px;font-size:11px;';
+      chk.textContent = '✓ SELECTED';
+      lbl.appendChild(chk);
+    }
+
+    // If EMA question answered, update triggers card options dynamically
+    const signals = window._currentSignals;
+    if (signals) {
+      const emaIdx = signals.findIndex(s => s.label === '25 EMA Position');
+      const trigIdx = signals.findIndex(s => s.dynamic === 'triggers');
+      if (q === emaIdx && trigIdx !== -1) {
+        const emaCorrect = btn.dataset.label.startsWith('Price Above') && direction === 'short'
+          || btn.dataset.label.startsWith('Price Below') && direction === 'long';
+        const trigSig = signals[trigIdx];
+        const newOpts = emaCorrect ? trigSig.options : trigSig.optionsWeakOnly;
+        const optsDiv = document.getElementById('opts' + trigIdx);
+        optsDiv.innerHTML = newOpts.map(opt => `
+          <button class="opt-btn" data-q="${trigIdx}" data-score="${opt.score}" data-tier="${opt.tier}" data-label="${opt.text}" onclick="selectOpt(this)">
+            ${opt.text}
+          </button>`).join('');
+        // Clear any previous trigger answer if options changed
+        if (answers[trigIdx]) {
+          delete answers[trigIdx];
+          const trigCard = document.getElementById('card' + trigIdx);
+          trigCard.classList.remove('answered');
+          const chk = trigCard.querySelector('.check');
+          if (chk) chk.remove();
+        }
+      }
+    }
+
+    const total = window._currentSignals ? window._currentSignals.length : SIGNALS[direction].length;
+    document.getElementById('analyseBtn').disabled = Object.keys(answers).length < total;
+  }
+
+  function analyse() {
+    const htfLabel = TF_MAP[selectedTF].htf;
+    const signals = SIGNALS[direction].map(s => {
+      if (s.label === 'HTF Trend Aligned') {
+        return Object.assign({}, s, { question: 'Is the ' + htfLabel + ' trend the same direction as your trade idea?' });
+      }
+      return s;
+    });
+    let total = 0;
+    for (let i = 0; i < signals.length; i++) total += answers[i].score;
+
+    const maxScore = signals.length * 3;
+    const pct = Math.round((total / maxScore) * 100);
+    const approved = pct >= 70;
+
+    let verdict, color;
+    if (pct >= 90)      { verdict = 'HIGH CONVICTION'; color = '#00ff88'; }
+    else if (pct >= 75) { verdict = 'GOOD SETUP';      color = '#00ff88'; }
+    else if (pct >= 55) { verdict = 'MARGINAL';        color = '#ffcc00'; }
+    else if (pct >= 35) { verdict = 'WEAK SETUP';      color = '#ff6b35'; }
+    else                { verdict = 'AVOID';            color = '#ff3366'; }
+
+    let timeMin, timeMax, timeSub;
+    if (pct >= 80)      { timeMin = 5;  timeMax = 20;  timeSub = 'mins to profit target'; }
+    else if (pct >= 60) { timeMin = 15; timeMax = 45;  timeSub = 'mins — strong move expected'; }
+    else if (pct >= 45) { timeMin = 30; timeMax = 90;  timeSub = 'mins — slow or choppy'; }
+    else if (pct >= 30) { timeMin = 10; timeMax = 40;  timeSub = 'mins before likely loss'; }
+    else                { timeMin = 5;  timeMax = 15;  timeSub = 'mins before stop hit'; }
+
+    document.documentElement.style.setProperty('--result-color', color);
+    document.getElementById('winPct').innerHTML = pct + '<span>%</span>';
+    document.getElementById('verdict').textContent = verdict;
+    document.getElementById('rawScore').textContent = total.toFixed(1);
+    document.getElementById('timeResult').textContent = timeMin + '–' + timeMax;
+    document.getElementById('timeSub').textContent = timeSub;
+
+    const rejectedMessages = [
+      "✕ What are you thinking, dickhead?",
+      "✕ Have you got peas for brains? This is a bad trade.",
+      "✕ Did you fall on your head? This trade is absolute garbage.",
+      "✕ Are you actually serious right now? DO NOT enter this trade.",
+      "✕ This trade is dogsh*t. Close the chart and go for a walk.",
+      "✕ Your nan could spot this is a bad trade. REJECTED.",
+      "✕ My dead gran trades better than this from beyond the grave. REJECTED.",
+      "✕ You'd lose money faster just setting it on fire. REJECTED.",
+      "✕ I've seen monkeys throw darts with better setups than this. Get out.",
+      "✕ This setup is an embarrassment. Rejected.",
+      "✕ Go touch grass, because you're not touching this garbage idea.",
+      "✕ You must be bored, because this is well idiotic.",
+      "✕ All you had to do was not be a c*nt. This trade idea shows you find that challenging.",
+    ];
+
+    document.getElementById('maxScoreLabel').textContent = 'out of ' + maxScore;
+    document.getElementById('breakdownTitle').textContent = '// ' + direction.charAt(0).toUpperCase() + direction.slice(1) + ' Signal Breakdown';
+    const timingWarnings = [
+      "⏳ Price is still finding its feet. Give it time to bottom out.",
+      "⏳ Don't long yet. Come back when you see some pink candles.",
+      "⏳ Below the bands with no reversal pattern — wait for the next 3 candles.",
+      "⏳ I know it looks bottomed, but it's not. Chill out on going long.",
+      "⏳ Sellers are still in control. Wait a bit longer before entering.",
+      "⏳ Not yet. The setup needs more time to mature — check back soon.",
+      "⏳ You're early. Let the sellers exhaust themselves first.",
+      "⏳ The conditions are building but it's not ready. Come back in 30.",
+    ];
+
+    const marginalMessages = [
+      "⚠️ You're stuck in the middle. Price is going to chop you up. Come back later.",
+      "⚠️ No edge here mate. Go make a brew and check back in an hour.",
+      "⚠️ This is a nothing setup. Price is confused, and so should you be. Wait.",
+      "⚠️ You're in no man's land. Fuck off and come back when it's cleaner.",
+      "⚠️ The market owes you nothing right now. Sit on your hands.",
+      "⚠️ Price is gonna chop around. Come back in an hour.",
+      "⚠️ Don't force this trade. It's too 50/50.",
+      "⚠️ Too hard to predict direction. Just leave it and come back later.",
+      "⚠️ Don't trade this out of boredom. It's not worth the anxiety.",
+      "⚠️ There's no edge here. Close the chart, touch grass, come back later.",
+      "⚠️ Price is going nowhere fast. Don't be the mug that trades it.",
+      "⚠️ Mixed signals. Even the market doesn't know what it's doing. Wait for clarity.",
+      "⚠️ This setup screams chop. Your stop will get hit, then it'll go your way. Just wait.",
+    ];
+
+    const badge = document.getElementById('approvalBadge');
+    if (approved) {
+      badge.textContent = '✓ Trade Approved';
+      badge.className = 'approval-badge approved';
+    } else if (pct >= 30 && pct <= 45) {
+      badge.textContent = marginalMessages[Math.floor(Math.random() * marginalMessages.length)];
+      badge.className = 'approval-badge marginal';
+    } else {
+      badge.textContent = rejectedMessages[Math.floor(Math.random() * rejectedMessages.length)];
+      badge.className = 'approval-badge rejected';
+    }
+
+    const execBtn = document.getElementById('executeBtn');
+    if (approved) {
+      execBtn.style.display = 'block';
+      execBtn.textContent = '📲  Send to Telegram';
+      execBtn.disabled = false;
+      execBtn.style.borderColor = '#00ff88';
+      execBtn.style.color = '#00ff88';
+    } else {
+      execBtn.style.display = 'none';
+    }
+
+    // Breakdown
+    const rows = document.getElementById('breakdownRows');
+    rows.innerHTML = '';
+    for (let i = 0; i < signals.length; i++) {
+      const a = answers[i];
+      rows.innerHTML += `
+        <div class="signal-row">
+          <span class="signal-name">${signals[i].label}</span>
+          <span class="signal-answer s-${a.tier}">
+            <span class="signal-dot dot-${a.tier}"></span>${a.label}
+          </span>
+        </div>`;
+    }
+
+    // Timing warning — too soon to long
+    const timingBanner = document.getElementById('timingWarning');
+    if (direction === 'long') {
+      const belowBands   = answers[0] && answers[0].label === 'Below the Bands';
+      const neitherPattern = answers[3] && answers[3].label === 'Neither';
+      const compCyan     = answers[2] && answers[2].label === 'Cyan';
+      if (belowBands && neitherPattern && compCyan) {
+        timingBanner.textContent = timingWarnings[Math.floor(Math.random() * timingWarnings.length)];
+        timingBanner.style.display = 'block';
+        document.getElementById('timerBtn').style.display = 'block';
+        const mins = getTimerMins();
+        document.getElementById('timerBtnLabel').textContent = 'Set ' + mins + ' Min Timer';
+      } else {
+        timingBanner.style.display = 'none';
+        document.getElementById('timerBtn').style.display = 'none';
+      }
+    } else {
+      timingBanner.style.display = 'none';
+    }
+
+    const result = document.getElementById('result');
+    result.classList.add('show');
+    result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => { document.getElementById('meterFill').style.width = pct + '%'; }, 100);
+  }
+
+  const TELEGRAM_BOT_TOKEN = '8733675233:AAGAGOg71NiInoonX45PhrV1EJcS_Si7kAY';
+  const TELEGRAM_CHAT_ID = '479517853';
+
+  async function sendToTelegram() {
+    const btn = document.getElementById('executeBtn');
+    btn.textContent = '⏳  Sending...';
+    btn.disabled = true;
+
+    const dir = direction.toUpperCase();
+    const tf = TF_MAP[selectedTF].label;
+    const htf = TF_MAP[selectedTF].htf;
+    const signals = window._currentSignals;
+    const maxScore = signals.length * 3;
+    let total = 0;
+    for (let i = 0; i < signals.length; i++) total += answers[i].score;
+    const pct = Math.round((total / maxScore) * 100);
+
+    let breakdown = '';
+    for (let i = 0; i < signals.length; i++) {
+      const a = answers[i];
+      const icon = a.tier === 'best' ? '✅' : a.tier === 'mid' ? '⚠️' : '❌';
+      breakdown += `${icon} ${signals[i].label}: ${a.label}\n`;
+    }
+
+    const msg = `🔔 *TRADE SIGNAL — ${dir}*\n`
+      + `📊 Timeframe: ${tf} (HTF: ${htf})\n`
+      + `📈 Score: ${total.toFixed(1)} / ${maxScore} (${pct}%)\n`
+      + `✅ Status: APPROVED\n\n`
+      + `*Signal Breakdown:*\n${breakdown}\n`
+      + `_Sent from Signal Checker_`;
+
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: msg,
+          parse_mode: 'Markdown'
+        })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        btn.textContent = '✓  Sent to Telegram';
+        btn.style.borderColor = '#00ff88';
+        btn.style.color = '#00ff88';
+      } else {
+        throw new Error(data.description);
+      }
+    } catch (err) {
+      btn.textContent = '✕  Failed — ' + err.message;
+      btn.style.borderColor = '#ff3366';
+      btn.style.color = '#ff3366';
+      btn.disabled = false;
+    }
+  }
+
+  function getTimerMins() {
+    if (selectedTF === '30min') return 60;
+    if (selectedTF === '1hr') return 120;
+    return 30;
+  }
+
+  function startTimer() {
+    const mins = getTimerMins();
+    const btn = document.getElementById('timerBtn');
+
+    const now = new Date();
+    const reminderTime = new Date(now.getTime() + mins * 60 * 1000);
+
+    const pad = n => String(n).padStart(2, '0');
+    const fmt = d => d.getUTCFullYear() + pad(d.getUTCMonth()+1) + pad(d.getUTCDate()) + 'T' + pad(d.getUTCHours()) + pad(d.getUTCMinutes()) + '00Z';
+
+    const start = fmt(reminderTime);
+    const end   = fmt(new Date(reminderTime.getTime() + 5 * 60 * 1000));
+    const dir   = direction.toUpperCase();
+    const tf    = TF_MAP[selectedTF].label;
+
+    const ics = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//TradeChecker//EN',
+      'BEGIN:VEVENT',
+      'UID:' + now.getTime() + '@tradechecker',
+      'DTSTAMP:' + fmt(now),
+      'DTSTART:' + start,
+      'DTEND:' + end,
+      'SUMMARY:📊 Check the chart — ' + dir + ' setup building',
+      'DESCRIPTION:Your ' + mins + ' min reminder from Trade Checker. Go run the signal checker again for your ' + tf + ' ' + dir + ' setup.',
+      'BEGIN:VALARM',
+      'TRIGGER:PT0S',
+      'ACTION:DISPLAY',
+      'DESCRIPTION:Check the chart now!',
+      'END:VALARM',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'trade-reminder.ics';
+    a.click();
+    URL.revokeObjectURL(url);
+
+    document.getElementById('timerBtnLabel').textContent = '✓ Calendar Reminder Created';
+    btn.style.borderColor = '#00ff88';
+    btn.style.color = '#00ff88';
+  }
+
+  function reset() {
+    answers_clear();
+    direction = null;
+    selectedTF = null;
+    document.getElementById('directionScreen').style.display = 'block';
+    document.getElementById('timeframeScreen').classList.remove('show');
+    document.getElementById('questionsScreen').classList.remove('show');
+    document.getElementById('result').classList.remove('show');
+    document.getElementById('meterFill').style.width = '0%';
+    document.getElementById('timingWarning').style.display = 'none';
+    document.getElementById('timerBtn').style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
