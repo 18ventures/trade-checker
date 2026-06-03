@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trade Checker">
+<meta name="theme-color" content="#080808">
+<title>Trade Checker</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080808;
+    --surface: #111111;
+    --border: #222222;
+    --text: #c8c8c8;
+    --muted: #555555;
+    --pink: #ff69b4;
+    --blue: #00bfff;
+    --green: #00ff88;
+    --yellow: #ffd700;
+    --red: #ff3366;
+    --orange: #ff8c00;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    padding: max(40px, env(safe-area-inset-top)) 20px calc(env(safe-area-inset-bottom, 0px) + 60px);
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  h1 {
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, #fff 0%, #888 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
+
+  .divider {
+    width: 50px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #444, transparent);
+    margin: 12px auto;
+  }
+
+  .subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* SIGNAL GRID */
+  .signals-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .signal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    transition: border-color 0.2s;
+  }
+
+  .signal-card.answered { border-color: #333; }
+
+  .signal-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .signal-label .check {
+    color: var(--green);
+    margin-left: 6px;
+    font-size: 9px;
+  }
+
+  .signal-question {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+
+  .opts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .opt {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 5px 10px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .opt:hover { border-color: #888; color: #fff; background: rgba(255,255,255,0.04); }
+
+  /* colour-coded selected states */
+  .opt.sel-blue   { border-color: var(--blue);   color: var(--blue);   background: rgba(0,191,255,0.08); }
+  .opt.sel-pink   { border-color: var(--pink);   color: var(--pink);   background: rgba(255,105,180,0.08); }
+  .opt.sel-green  { border-color: var(--green);  color: var(--green);  background: rgba(0,255,136,0.08); }
+  .opt.sel-yellow { border-color: var(--yellow); color: var(--yellow); background: rgba(255,215,0,0.08); }
+  .opt.sel-orange { border-color: var(--orange); color: var(--orange); background: rgba(255,140,0,0.08); }
+  .opt.sel-red    { border-color: var(--red);    color: var(--red);    background: rgba(255,51,102,0.08); }
+  .opt.sel-white  { border-color: #ccc;          color: #fff;          background: rgba(255,255,255,0.06); }
+  .opt.sel-none   { border-color: #555;          color: #888;          background: rgba(255,255,255,0.03); }
+
+  /* ANALYSE BUTTON */
+  .analyse-btn {
+    width: 100%;
+    padding: 18px;
+    background: transparent;
+    border: 1px solid #555;
+    border-radius: 4px;
+    color: #ccc;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 24px;
+  }
+
+  .analyse-btn:hover:not(:disabled) { border-color: #999; color: #fff; background: rgba(255,255,255,0.04); }
+  .analyse-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* RESULT */
+  .result {
+    display: none;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .result.show { display: block; }
+
+  .verdict-card {
+    border-radius: 4px;
+    padding: 28px 24px;
+    text-align: center;
+    margin-bottom: 16px;
+    border: 1px solid;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .verdict-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--verdict-color, #888);
+  }
+
+  .verdict-dir {
+    font-size: 52px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .verdict-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .prob-bar-wrap {
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 16px;
+  }
+
+  .prob-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 1s cubic-bezier(0.4,0,0.2,1);
+    width: 0%;
+  }
+
+  .prob-pct {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .prob-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* AI COMMENTARY */
+  .commentary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+
+  .commentary-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .commentary-text {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text);
+    font-weight: 400;
+  }
+
+  .commentary-text.loading {
+    color: var(--muted);
+    font-style: italic;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+
+  /* RESET */
+  .reset-btn {
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--muted);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+
+  .reset-btn:hover { border-color: #888; color: #fff; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 480px) {
+    .signals-grid { grid-template-columns: 1fr; }
+    h1 { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="tag">// Trade Checker</div>
+    <h1>What Do<br>You See?</h1>
+    <div class="divider"></div>
+    <div class="subtitle">Describe the chart — I'll tell you what to do</div>
+  </header>
+
+  <div class="signals-grid" id="signalsGrid"></div>
+
+  <button class="analyse-btn" id="analyseBtn" onclick="analyse()" disabled>
+    ▶ &nbsp; Analyse
+  </button>
+
+  <div class="result" id="result">
+    <div class="verdict-card" id="verdictCard">
+      <div class="prob-label">Recommendation</div>
+      <div class="verdict-dir" id="verdictDir">—</div>
+      <div class="verdict-sub" id="verdictSub">—</div>
+      <div class="prob-label">Probability</div>
+      <div class="prob-pct" id="probPct">—</div>
+      <div class="prob-bar-wrap"><div class="prob-bar" id="probBar"></div></div>
+    </div>
+
+    <div id="premiumWarning" style="display:none;margin-bottom:16px;padding:16px 20px;border:1px solid #ff3366;border-radius:4px;background:rgba(255,51,102,0.06);font-family:'Share Tech Mono',monospace;font-size:13px;color:#ff3366;letter-spacing:1px;line-height:1.6;text-align:center;">
+      ⛔ DO NOT LONG — You are buying at heavy premium.<br>LTF RSI is blue above 50. The move has already happened.<br><br>
+      <span style="color:#ffcc00;">What to watch for instead →</span><br>
+      Wait for the LTF RSI to turn <span style="color:#ffd700;">Yellow</span> or <span style="color:#ff69b4;">Pink</span>, then look for a <span style="color:#ff3366;">Short trigger</span> (Short or Fork).<br>
+      That's your entry. Don't force the long.
+    </div>
+    <div class="commentary-card">
+      <div class="commentary-title">// Analysis</div>
+      <div class="commentary-text loading" id="commentaryText">Analysing your setup...</div>
+    </div>
+
+    <button class="reset-btn" onclick="reset()">↺ &nbsp; Reset</button>
+  </div>
+
+</div>
+<script>
+const SIGNALS = [
+  {
+    id: 'htf_candle',
+    label: 'HTF Candle',
+    question: 'What colour is the HTF candle?',
+    opts: [
+      { text: 'Blue',  cls: 'sel-blue',  value: 'blue'  },
+      { text: 'Pink',  cls: 'sel-pink',  value: 'pink'  },
+    ]
+  },
+  {
+    id: 'htf_rsi',
+    label: 'HTF RSI',
+    question: 'What colour is the HTF RSI?',
+    opts: [
+      { text: 'Blue',   cls: 'sel-blue',   value: 'blue'   },
+      { text: 'Green',  cls: 'sel-green',  value: 'green'  },
+      { text: 'Yellow', cls: 'sel-yellow', value: 'yellow' },
+      { text: 'Pink',   cls: 'sel-pink',   value: 'pink'   },
+    ]
+  },
+  {
+    id: 'ltf_candle',
+    label: 'LTF Candle',
+    question: 'What colour is the LTF candle?',
+    opts: [
+      { text: 'Blue', cls: 'sel-blue', value: 'blue' },
+      { text: 'Pink', cls: 'sel-pink', value: 'pink' },
+    ]
+  },
+  {
+    id: 'ltf_rsi',
+    label: 'LTF RSI',
+    question: 'What colour is the LTF RSI?',
+    opts: [
+      { text: 'Green',  cls: 'sel-green',  value: 'green'  },
+      { text: 'Blue',   cls: 'sel-blue',   value: 'blue'   },
+      { text: 'Yellow', cls: 'sel-yellow', value: 'yellow' },
+      { text: 'Pink',   cls: 'sel-pink',   value: 'pink'   },
+    ]
+  },
+  {
+    id: 'composite',
+    label: 'Composite',
+    question: 'What is the composite?',
+    opts: [
+      { text: 'Green',   cls: 'sel-green',  value: 'green'   },
+      { text: 'Blue',    cls: 'sel-blue',   value: 'blue'    },
+      { text: 'Neither', cls: 'sel-none',   value: 'neither' },
+    ]
+  },
+  {
+    id: 'ema',
+    label: '21 EMA',
+    question: 'Price vs 21 EMA?',
+    opts: [
+      { text: 'Above', cls: 'sel-white', value: 'above' },
+      { text: 'Below', cls: 'sel-white', value: 'below' },
+    ]
+  },
+  {
+    id: 'ema50',
+    label: '50 EMA',
+    question: 'Price vs 50 EMA?',
+    opts: [
+      { text: 'Above', cls: 'sel-white', value: 'above' },
+      { text: 'Below', cls: 'sel-white', value: 'below' },
+    ]
+  },
+  {
+    id: 'rsi30',
+    label: 'RSI 30 Line',
+    question: 'RSI vs 30 line?',
+    opts: [
+      { text: 'Above', cls: 'sel-green', value: 'above' },
+      { text: 'Below', cls: 'sel-red',   value: 'below' },
+    ]
+  },
+  {
+    id: 'rsi50',
+    label: 'RSI 50 Line',
+    question: 'RSI vs 50 line?',
+    opts: [
+      { text: 'Above', cls: 'sel-green', value: 'above' },
+      { text: 'Below', cls: 'sel-red',   value: 'below' },
+    ]
+  },
+  {
+    id: 'trigger',
+    label: 'Trigger',
+    question: 'Any trigger fired?',
+    opts: [
+      { text: 'Long',     cls: 'sel-green',  value: 'long'     },
+      { text: 'Short',    cls: 'sel-red',    value: 'short'    },
+      { text: 'Strength', cls: 'sel-blue',   value: 'strength' },
+      { text: 'Fork',     cls: 'sel-orange', value: 'fork'     },
+      { text: 'None',     cls: 'sel-none',   value: 'none'     },
+    ]
+  },
+];
+
+const answers = {};
+
+// Build UI
+const grid = document.getElementById('signalsGrid');
+SIGNALS.forEach(sig => {
+  const card = document.createElement('div');
+  card.className = 'signal-card';
+  card.id = 'card_' + sig.id;
+  card.innerHTML = `
+    <div class="signal-label" id="lbl_${sig.id}">${sig.label}</div>
+    <div class="signal-question">${sig.question}</div>
+    <div class="opts">
+      ${sig.opts.map(o => `<button class="opt" data-id="${sig.id}" data-value="${o.value}" data-cls="${o.cls}" onclick="pick(this)">${o.text}</button>`).join('')}
+    </div>`;
+  grid.appendChild(card);
+});
+
+function pick(btn) {
+  const id = btn.dataset.id;
+  const card = document.getElementById('card_' + id);
+  card.querySelectorAll('.opt').forEach(b => b.className = 'opt');
+  btn.classList.add(btn.dataset.cls);
+  answers[id] = btn.dataset.value;
+  card.classList.add('answered');
+  const lbl = document.getElementById('lbl_' + id);
+  if (!lbl.querySelector('.check')) {
+    const chk = document.createElement('span');
+    chk.className = 'check';
+    chk.textContent = '✓';
+    lbl.appendChild(chk);
+  }
+  document.getElementById('analyseBtn').disabled = Object.keys(answers).length < SIGNALS.length;
+}
+
+function score() {
+  let longScore = 0, shortScore = 0;
+  const a = answers;
+
+  // HTF Candle — blue = bullish overhang (long), pink = bearish (short)
+  if (a.htf_candle === 'blue')  { longScore += 3; }
+  if (a.htf_candle === 'pink')  { shortScore += 3; longScore -= 2; }
+
+  // HTF RSI
+  if (a.htf_rsi === 'blue')    { longScore += 2; shortScore -= 1; }
+  if (a.htf_rsi === 'green')   { longScore += 1; }
+  if (a.htf_rsi === 'yellow')  { longScore -= 1; shortScore += 1; }
+  if (a.htf_rsi === 'pink')    { longScore -= 3; shortScore += 2; }
+
+  // LTF Candle — pink = pullback for long, blue = pullback for short
+  if (a.ltf_candle === 'pink') { longScore += 3; }
+  if (a.ltf_candle === 'blue') { shortScore += 3; }
+
+  // LTF RSI
+  if (a.ltf_rsi === 'green')   { longScore += 3; shortScore -= 1; }
+  if (a.ltf_rsi === 'blue')    { longScore += 2; shortScore += 1; }
+  if (a.ltf_rsi === 'yellow')  { longScore -= 1; shortScore += 2; }
+  if (a.ltf_rsi === 'pink')    { longScore -= 2; shortScore += 3; }
+
+  // Composite
+  if (a.composite === 'green') { longScore += 2; }
+  if (a.composite === 'blue')  { shortScore += 2; }
+
+  // EMA
+  if (a.ema === 'above') { longScore += 1; shortScore -= 1; }
+  if (a.ema === 'below') { shortScore += 1; longScore -= 1; }
+
+  // 50 EMA
+  if (a.ema50 === 'above') { longScore += 1; }
+  if (a.ema50 === 'below') { shortScore += 1; }
+
+  // RSI 30
+  if (a.rsi30 === 'above') { longScore += 2; }
+  if (a.rsi30 === 'below') { shortScore += 1; longScore -= 1; }
+
+  // RSI 50 — above 50 on LTF = buying at premium, heavy penalty for longs
+  if (a.rsi50 === 'above') { longScore -= 4; shortScore += 1; }
+  if (a.rsi50 === 'below') { longScore += 2; shortScore -= 1; }
+
+  // LTF RSI blue + RSI above 50 = already moved, buying at extreme premium
+  if (answers.ltf_rsi === 'blue' && answers.rsi50 === 'above') { longScore -= 6; }
+
+  // Trigger
+  if (a.trigger === 'long' || a.trigger === 'strength') { longScore += 3; }
+  if (a.trigger === 'short' || a.trigger === 'fork')    { shortScore += 3; }
+
+  const maxScore = 19;
+  longScore  = Math.max(0, longScore);
+  shortScore = Math.max(0, shortScore);
+
+  return { longScore, shortScore, maxScore };
+}
+
+function buildPrompt() {
+  const a = answers;
+  return `You are a trading analyst for a BTC futures trader. Based on these chart observations, tell them what to do — Long, Short, or Stay Out — and explain why concisely. Be direct, no fluff.
+
+Chart conditions:
+- HTF candle colour: ${a.htf_candle}
+- HTF RSI colour: ${a.htf_rsi}
+- LTF candle colour: ${a.ltf_candle}
+- LTF RSI colour: ${a.ltf_rsi}
+- Composite: ${a.composite}
+- Price vs 21 EMA: ${a.ema}
+- Price vs 50 EMA: ${a.ema50}
+- RSI vs 30 line: ${a.rsi30}
+- RSI vs 50 line: ${a.rsi50}
+- Trigger fired: ${a.trigger}
+
+Key rules:
+- Blue candle = bullish, Pink candle = bearish
+- HTF sets the bias. LTF is the entry. You long pink LTF candles within a blue HTF. You short blue LTF candles within a pink HTF.
+- HTF RSI pink = hard stop for longs (-3). HTF RSI blue = good for longs (+2).
+- LTF RSI green = strong long signal. LTF RSI pink = bearish.
+- A trigger (Long/Strength for longs, Short/Fork for shorts) is required for highest confidence.
+- RSI above 30 confirms bullish momentum. BUT RSI above 50 for longs is a heavy negative — buying at premium. If LTF RSI is blue AND RSI is above 50, this is an extreme penalty for longs — price has already run, the move is done.
+
+Give: 1) Your recommendation (Long / Short / Stay Out), 2) The key reasons in 2-3 sentences, 3) What would invalidate this call. Keep it under 100 words total.`;
+}
+
+async function analyse() {
+  const btn = document.getElementById('analyseBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳  Analysing...';
+
+  let { longScore, shortScore, maxScore } = score();
+  const isLong  = longScore > shortScore;
+  const isShort = shortScore > longScore;
+  const stayOut = Math.abs(longScore - shortScore) <= 2;
+
+  let direction, color, prob;
+  const longProb  = Math.round((longScore  / maxScore) * 100);
+  const shortProb = Math.round((shortScore / maxScore) * 100);
+  const bestProb  = Math.max(longProb, shortProb);
+
+  // Hard rules — override scoring
+  const hardNoLong  = answers.htf_candle === 'pink';
+  const hardNoShort = answers.htf_candle === 'blue';
+  if (hardNoLong)  { longScore  = 0; }
+  if (hardNoShort) { shortScore = 0; }
+
+  const longProbFinal  = Math.round((longScore  / maxScore) * 100);
+  const shortProbFinal = Math.round((shortScore / maxScore) * 100);
+  const bestFinal = Math.max(longProbFinal, shortProbFinal);
+
+  if (bestFinal < 55 || Math.abs(longScore - shortScore) <= 2) {
+    direction = 'STAY OUT';
+    color = '#ffcc00';
+    prob = bestFinal;
+  } else if (longScore > shortScore) {
+    direction = '▲ LONG';
+    color = '#00ff88';
+    prob = longProbFinal;
+  } else {
+    direction = '▼ SHORT';
+    color = '#ff3366';
+    prob = shortProbFinal;
+  }
+
+  // Show result
+  document.documentElement.style.setProperty('--verdict-color', color);
+  const vc = document.getElementById('verdictCard');
+  vc.style.borderColor = color;
+  vc.style.background = `rgba(${color === '#00ff88' ? '0,255,136' : color === '#ff3366' ? '255,51,102' : '255,204,0'},0.04)`;
+  document.getElementById('verdictDir').textContent = direction;
+  document.getElementById('verdictDir').style.color = color;
+  const finalStayOut = direction === 'STAY OUT';
+  document.getElementById('verdictSub').textContent = finalStayOut ? 'Mixed signals — wait for clarity' : (direction === '▲ LONG' ? 'Bias is bullish — look for long entry' : 'Bias is bearish — look for short entry');
+  document.getElementById('probPct').textContent = prob + '%';
+  document.getElementById('probPct').style.color = color;
+  document.getElementById('probBar').style.background = color;
+  document.getElementById('probBar').style.boxShadow = `0 0 8px ${color}`;
+
+  const result = document.getElementById('result');
+  result.classList.add('show');
+  result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  setTimeout(() => { document.getElementById('probBar').style.width = prob + '%'; }, 100);
+
+  // Rule-based commentary (always works, no API needed)
+  const a = answers;
+
+  // Hard warning — LTF RSI blue + RSI above 50
+  const premWarn = document.getElementById('premiumWarning');
+  if (answers.ltf_rsi === 'blue' && answers.rsi50 === 'above') {
+    premWarn.style.display = 'block';
+  } else {
+    premWarn.style.display = 'none';
+  }
+
+  document.getElementById('commentaryText').className = 'commentary-text';
+  const lines = [];
+
+  if (direction === '▲ LONG') {
+    if (a.htf_candle === 'blue') lines.push('HTF candle is blue — bullish overhang confirmed.');
+    if (a.htf_rsi === 'blue' || a.htf_rsi === 'green') lines.push('HTF RSI supports the bullish bias.');
+    if (a.ltf_candle === 'pink') lines.push('LTF is pink — you are buying the pullback into support. Good entry timing.');
+    if (a.ltf_rsi === 'green') lines.push('LTF RSI is green — momentum is building on the lower timeframe.');
+    if (a.rsi30 === 'above') lines.push('RSI is above 30 — not oversold, momentum confirmed.');
+    if (a.rsi50 === 'below') lines.push('RSI below 50 — discounted entry, not chasing the move.');
+    if (a.trigger === 'long' || a.trigger === 'strength') lines.push('A long trigger has fired — this is your confirmation to enter.');
+    if (a.ema === 'above') lines.push('Price is above the 21 EMA — bullish structure intact.');
+    lines.push('Invalidation: HTF candle flips pink, or LTF RSI turns yellow/pink without recovery.');
+  } else if (direction === '▼ SHORT') {
+    if (a.htf_candle === 'pink') lines.push('HTF candle is pink — bearish overhang confirmed.');
+    if (a.htf_rsi === 'pink' || a.htf_rsi === 'yellow') lines.push('HTF RSI supports the bearish bias.');
+    if (a.ltf_candle === 'blue') lines.push('LTF is blue — you are selling the pullback into resistance. Good entry timing.');
+    if (a.ltf_rsi === 'yellow' || a.ltf_rsi === 'pink') lines.push('LTF RSI is weakening — momentum is turning bearish on the lower timeframe.');
+    if (a.trigger === 'short' || a.trigger === 'fork') lines.push('A short trigger has fired — this is your confirmation to enter.');
+    if (a.ema === 'below') lines.push('Price is below the 21 EMA — bearish structure intact.');
+    lines.push('Invalidation: HTF candle flips blue, or a long trigger fires with LTF turning pink.');
+  } else {
+    // Contextual stay out reasons
+    if (a.htf_candle === 'pink') lines.push('HTF candle is pink — bearish overhang means no long trades.');
+    if (a.htf_candle === 'blue') lines.push('HTF candle is blue — bullish overhang means no short trades.');
+    if (a.htf_rsi === 'blue' && a.htf_candle === 'pink') lines.push('HTF RSI is blue which is bullish, but the pink HTF candle overrides this — the bearish bias wins.');
+    if (a.ltf_rsi === 'pink') lines.push('LTF RSI is pink — bearish momentum on the lower timeframe, but no short trigger has confirmed yet.');
+    if (a.ltf_rsi === 'yellow') lines.push('LTF RSI is yellow — momentum is weakening but not confirmed bearish yet.');
+    if (a.rsi30 === 'below') lines.push('RSI is below 30 — oversold territory. Price may be exhausted to the downside, making a short entry risky here.');
+    if (a.rsi50 === 'below') lines.push('RSI below 50 — not ideal for shorting into, as price could bounce from here.');
+    if (a.trigger === 'none') lines.push('No trigger has fired on either side — without a confirmation signal, this is not the time to enter.');
+    if (a.htf_candle === 'pink' && a.ltf_candle === 'pink') lines.push('Both HTF and LTF candles are pink — the move down may already be extended. Wait for a blue LTF pullback candle before looking for a short entry.');
+    if (a.composite === 'neither') lines.push('Composite is neutral — no directional conviction from the broader trend indicator.');
+    lines.push('Wait for a cleaner setup with a confirmed trigger before entering.');
+  }
+
+  document.getElementById('commentaryText').className = 'commentary-text';
+  document.getElementById('commentaryText').textContent = lines.join(' ');
+
+  btn.textContent = '▶  Analyse';
+  btn.disabled = false;
+}
+
+function reset() {
+  Object.keys(answers).forEach(k => delete answers[k]);
+  document.querySelectorAll('.opt').forEach(b => b.className = 'opt');
+  document.querySelectorAll('.signal-card').forEach(c => c.classList.remove('answered'));
+  document.querySelectorAll('.check').forEach(c => c.remove());
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('probBar').style.width = '0%';
+  document.getElementById('premiumWarning').style.display = 'none';
+  document.getElementById('analyseBtn').disabled = true;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
